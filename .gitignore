@@ -1,0 +1,63 @@
+# Ignore the main Unity folders that contain generated and cached data
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+
+# Ignore the package cache
+[Pp]ackages/
+!Packages/manifest.json
+!Packages/packages-lock.json
+
+# Ignore auto-generated Unity files
+/[Aa]ssets/**/*.meta
+/[Pp]rojectSettings/EditorBuildSettings.asset
+
+# Ignore crash reports, system files, and backups
+*.pidb
+*.suo
+*.user
+*.csv
+*.svd
+*.apk
+*.unitypackage
+*.log
+*.DS_Store
+Thumbs.db
+
+# Ignore Visual Studio / JetBrains Rider files
+.vscode/
+*.csproj
+*.sln
+*.userprefs
+*.cache/
+.idea/
+*.iml
+
+# Ignore Playmode/EditorMode test results
+Assets/Scenes/Tests/**
+
+# Ignore custom user settings
+*.swp
+*.swn
+*.bak
+*.backup
+*.orig
+
+# Ignore Rider's workspace
+.idea/
+
+# Ignore Unity Cloud Build files
+[Uu]ser[Ss]ettings/
+
+# Ignore .env files or other local environment settings
+.env
+
+# Ignore files related to generated shaders
+ShaderCache/
+
+# Ignore logs from Unity Collaborate
+CollabSnapshot/
