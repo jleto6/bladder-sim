@@ -1,8 +1,10 @@
 using UnityEngine;
 
+
 public class WaterDisplacement : MonoBehaviour
 {
-    public Collider waterObject; // Assign the water object's collider in the Inspector   
+    public Collider waterObject; // Assign the water object's collider in the Inspector 
+    public Collider bladderObject; // Assign the bladder object's collider in the Inspector  
  
     private float real_length = 305f;
     private float real_width = 33.5f;  
@@ -14,9 +16,7 @@ public class WaterDisplacement : MonoBehaviour
         // Get surface area of water
         if (waterObject != null)
         {
-
-           
-         
+        
             // Get the bounds of the water object's collider
             float width = waterObject.bounds.size.x;
             float length = waterObject.bounds.size.z *(2);
@@ -26,20 +26,38 @@ public class WaterDisplacement : MonoBehaviour
             // Calculate and volume of the water
             float volume = length * width * depth;
             volume = volume * 16500; //proportional scaling
-            Debug.Log($"Volume: {volume} m³");
 
-            
+            GlobalVariables.waterVolume = Mathf.Round(volume);
+            Debug.Log($"Volume: {GlobalVariables.waterVolume} m³");
+
         }
-        else
-        {
-            Debug.LogWarning("Water object is not assigned!");
-        }
+
+        
+        
 
     }
 
     private void Update()
     {
 
+        float bladderVolume = 0;
+        // Get surface area of bladder
+        if (bladderObject != null)
+        {
+        
+            // Get the bounds of the water object's collider
+            float bladderWidth = bladderObject.bounds.size.x;
+            float bladderLength = bladderObject.bounds.size.z *(2);
+            float bladderDepth = bladderObject.bounds.size.y;
+        
+
+            // Calculate and volume of the water
+            bladderVolume = bladderWidth * bladderLength * bladderDepth;
+            bladderVolume = bladderVolume * 16500; //proportional scaling
+
+            GlobalVariables.bladderVolume = Mathf.Round(bladderVolume);
+
+        }
 
 
     }
