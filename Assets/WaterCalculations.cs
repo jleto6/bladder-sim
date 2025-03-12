@@ -1,7 +1,7 @@
 using UnityEngine;
 
 
-public class WaterDisplacement : MonoBehaviour
+public class WaterCalculations : MonoBehaviour
 {
     public Collider waterObject; // Assign the water object's collider in the Inspector 
     public Collider bladderObject; // Assign the bladder object's collider in the Inspector  
@@ -31,7 +31,6 @@ public class WaterDisplacement : MonoBehaviour
             Debug.Log($"Volume: {GlobalVariables.waterVolume} m³");
 
         }
-
         
         
 
@@ -53,7 +52,7 @@ public class WaterDisplacement : MonoBehaviour
 
             // Calculate and volume of the water
             bladderVolume = bladderWidth * bladderLength * bladderDepth;
-            bladderVolume = bladderVolume * 16500; //proportional scaling
+            bladderVolume = bladderVolume * 16500; // proportional scaling
 
             GlobalVariables.bladderVolume = Mathf.Round(bladderVolume);
 

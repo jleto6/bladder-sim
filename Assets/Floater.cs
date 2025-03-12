@@ -31,7 +31,7 @@ public class Floater : MonoBehaviour
         }
         else
         {
-            // If the boat is above water, let gravity pull it down naturally
+            // If the boat is above water let gravity pull it down naturally
             rb.AddForce(Vector3.down * Physics.gravity.y, ForceMode.Acceleration);
         }
     }
