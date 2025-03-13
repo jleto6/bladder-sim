@@ -100,7 +100,7 @@ public class WaterScale : MonoBehaviour
         
         // interpolate bladder scale and position using SmoothDamp
         float newBladderScaleY = Mathf.SmoothDamp(bladder.localScale.y, targetBladderScaleY, ref velocityBladderScale, smoothTime);
-        float newBladderPosY = Mathf.SmoothDamp(bladder.position.y, targetBladderPosition.y + bobbingOffset, ref velocityBladderPosition, smoothTime);
+        float newBladderPosY = Mathf.SmoothDamp(bladder.position.y, targetBladderPosition.y, ref velocityBladderPosition, smoothTime);
         bladder.localScale = new Vector3(bladder.localScale.x, newBladderScaleY, bladder.localScale.z);
         bladder.position = new Vector3(bladder.position.x, newBladderPosY, bladder.position.z);
     }
