@@ -1,27 +1,16 @@
-Shader "Custom/WaterShader"
+Shader "Custom/SimplifiedURPWaterShader"
 {
     Properties
     {
-        _ShallowColor ("Shallow Color", Color) = (0.325, 0.807, 0.971, 0.9)
-        _DeepColor ("Deep Color", Color) = (0.086, 0.407, 1, 0.9)
-        _DepthScale ("Depth Scale", Range(0, 10)) = 1.5
-        _DepthPower ("Depth Power", Range(0, 5)) = 1.0
-        
-        _NormalMap ("Normal Map", 2D) = "bump" {}
-        _BumpStrength ("Bump Strength", Range(0, 2)) = 0.5
-        
-        _Glossiness ("Smoothness", Range(0, 1)) = 0.9
-        _Metallic ("Metallic", Range(0, 1)) = 0
-        
+        _WaterColor ("Water Color", Color) = (0.325, 0.807, 0.971, 0.8)
         _WaveFrequency ("Wave Frequency", Range(0, 10)) = 1
         _WaveScale ("Wave Scale", Range(0, 1)) = 0.1
         _WaveSpeed ("Wave Speed", Range(0, 10)) = 1
         
-        _ScrollSpeed ("Scroll Speed", Range(0, 5)) = 0.5
-        
-        _FoamWidth ("Foam Width", Range(0, 10)) = 1.0
-        _FoamNoise ("Foam Noise", 2D) = "white" {}
-        _DepthFoam ("Depth Foam", Range(0, 2)) = 1.0
+        // Normal map for ripples
+        _NormalMap ("Normal Map", 2D) = "bump" {}
+        _BumpStrength ("Ripple Strength", Range(0, 1)) = 0.5
+        _RippleSpeed ("Ripple Speed", Range(0, 2)) = 0.5
     }
     
     SubShader
@@ -47,9 +36,11 @@ Shader "Custom/WaterShader"
             #pragma fragment frag
             #pragma multi_compile_fog
             
+            // Target 2.0 for wider WebGL support
+            #pragma target 2.0
+            
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             
             struct Attributes
             {
@@ -67,32 +58,21 @@ Shader "Custom/WaterShader"
                 float3 tangentWS    : TEXCOORD2;
                 float3 bitangentWS  : TEXCOORD3;
                 float3 positionWS   : TEXCOORD4;
-                float4 screenPos    : TEXCOORD5;
-                float  fogFactor    : TEXCOORD6;
+                float  fogFactor    : TEXCOORD5;
             };
             
             CBUFFER_START(UnityPerMaterial)
-                float4 _ShallowColor;
-                float4 _DeepColor;
-                float _DepthScale;
-                float _DepthPower;
-                float _BumpStrength;
-                float _Glossiness;
-                float _Metallic;
+                float4 _WaterColor;
                 float _WaveFrequency;
                 float _WaveScale;
                 float _WaveSpeed;
-                float _ScrollSpeed;
-                float _FoamWidth;
-                float _DepthFoam;
+                float _BumpStrength;
+                float _RippleSpeed;
                 float4 _NormalMap_ST;
-                float4 _FoamNoise_ST;
             CBUFFER_END
             
             TEXTURE2D(_NormalMap);
             SAMPLER(sampler_NormalMap);
-            TEXTURE2D(_FoamNoise);
-            SAMPLER(sampler_FoamNoise);
             
             Varyings vert(Attributes input)
             {
@@ -108,16 +88,15 @@ Shader "Custom/WaterShader"
                 VertexPositionInputs positionInputs = GetVertexPositionInputs(input.positionOS.xyz);
                 output.positionCS = positionInputs.positionCS;
                 output.positionWS = positionInputs.positionWS;
-                output.screenPos = ComputeScreenPos(output.positionCS);
                 
-                // Calculate normal, tangent and bitangent
+                // Calculate normal, tangent and bitangent for normal mapping
                 VertexNormalInputs normalInputs = GetVertexNormalInputs(input.normalOS, input.tangentOS);
                 output.normalWS = normalInputs.normalWS;
                 output.tangentWS = normalInputs.tangentWS;
                 output.bitangentWS = normalInputs.bitangentWS;
                 
-                // Scrolling UVs for water movement
-                output.uv = input.uv + _Time.y * float2(_ScrollSpeed, _ScrollSpeed);
+                // Pass UV coordinates
+                output.uv = input.uv;
                 
                 // Calculate fog factor
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
@@ -127,10 +106,15 @@ Shader "Custom/WaterShader"
             
             float4 frag(Varyings input) : SV_Target
             {
-                // Sample normal map with scrolling UVs
-                float2 normalUV = TRANSFORM_TEX(input.uv, _NormalMap);
-                float3 normalMap = UnpackNormal(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, normalUV));
-                normalMap.xy *= _BumpStrength;
+                // Create ripple effect with two overlapping normal maps moving in different directions
+                float2 rippleUV1 = TRANSFORM_TEX(input.uv, _NormalMap) + _Time.y * float2(_RippleSpeed, 0);
+                float2 rippleUV2 = TRANSFORM_TEX(input.uv, _NormalMap) + _Time.y * float2(0, _RippleSpeed * 0.7);
+                
+                // Sample normal maps and blend them
+                float3 normalMap1 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, rippleUV1));
+                float3 normalMap2 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, rippleUV2));
+                float3 blendedNormal = normalize(normalMap1 + normalMap2);
+                blendedNormal.xy *= _BumpStrength;
                 
                 // Transform normal from tangent to world space
                 float3x3 tangentToWorld = float3x3(
@@ -138,60 +122,36 @@ Shader "Custom/WaterShader"
                     input.bitangentWS,
                     input.normalWS
                 );
-                float3 normalWS = mul(normalMap, tangentToWorld);
+                float3 normalWS = mul(blendedNormal, tangentToWorld);
                 
-                // Sample foam noise texture
-                float2 foamUV = TRANSFORM_TEX(input.uv, _FoamNoise);
-                float foamNoise = SAMPLE_TEXTURE2D(_FoamNoise, sampler_FoamNoise, foamUV).r;
+                // Get main light
+                Light mainLight = GetMainLight();
+                float3 lightDir = mainLight.direction;
+                float3 lightColor = mainLight.color;
                 
-                // Calculate screen UV for depth
-                float2 screenUV = input.screenPos.xy / input.screenPos.w;
+                // Basic lighting calculation with normal mapping
+                float ndotl = max(0.4, dot(normalize(normalWS), lightDir));
+                float3 diffuse = _WaterColor.rgb * lightColor * ndotl;
                 
-                // Get scene depth and calculate linear eye depth
-                float sceneDepth = SampleSceneDepth(screenUV);
-                float linearEyeDepth = LinearEyeDepth(sceneDepth, _ZBufferParams);
-                float linearEyeDepthInput = LinearEyeDepth(input.positionCS.z, _ZBufferParams);
+                // Add subtle specular highlight for ripples
+                float3 viewDir = normalize(GetWorldSpaceViewDir(input.positionWS));
+                float3 halfDir = normalize(lightDir + viewDir);
+                float spec = pow(max(0.0, dot(normalWS, halfDir)), 64);
+                float3 specular = spec * lightColor * 0.2; // Subtle highlight
                 
-                // Calculate water depth
-                float waterDepth = linearEyeDepth - linearEyeDepthInput;
-                float depthFade = saturate(exp(-waterDepth * _DepthScale));
+                // Final lighting with specular
+                float3 finalRGB = diffuse + specular;
                 
-                // Lerp between deep and shallow water colors based on depth
-                float4 waterColor = lerp(_DeepColor, _ShallowColor, pow(depthFade, _DepthPower));
+                // Apply fog
+                finalRGB = MixFog(finalRGB, input.fogFactor);
                 
-                // Calculate foam based on depth
-                float edge = 1.0 - saturate(waterDepth / _FoamWidth);
-                float foam = saturate(edge + foamNoise * edge * _DepthFoam);
-                
-                // Add foam to water color
-                waterColor.rgb = lerp(waterColor.rgb, float3(1, 1, 1), foam);
-                
-                // Lighting calculations
-                InputData lightingInput = (InputData)0;
-                lightingInput.normalWS = normalize(normalWS);
-                lightingInput.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                lightingInput.positionWS = input.positionWS;
-                lightingInput.shadowCoord = float4(0, 0, 0, 0); // Not handling shadows in this simplified version
-                lightingInput.fogCoord = input.fogFactor;
-                
-                SurfaceData surfaceInput = (SurfaceData)0;
-                surfaceInput.albedo = waterColor.rgb;
-                surfaceInput.alpha = waterColor.a;
-                surfaceInput.metallic = _Metallic;
-                surfaceInput.smoothness = _Glossiness;
-                
-                // Apply URP lighting
-                float4 finalColor = UniversalFragmentPBR(lightingInput, surfaceInput);
-                
-                // Improved alpha calculation to prevent excessive transparency
-                finalColor.a = lerp(waterColor.a, 1.0, foam) * saturate(1.0 - exp(-waterDepth * 0.5));
-                
-                return finalColor;
+                // Return final color with alpha from _WaterColor
+                return float4(finalRGB, _WaterColor.a);
             }
             ENDHLSL
         }
         
-        // Shadow caster pass (simplified to avoid include file dependency)
+        // Shadow caster pass
         Pass
         {
             Name "ShadowCaster"
@@ -206,17 +166,17 @@ Shader "Custom/WaterShader"
             #pragma vertex ShadowPassVertex
             #pragma fragment ShadowPassFragment
             
+            #pragma target 2.0
+            
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             
-            // Include needed constant buffers and utility functions
             CBUFFER_START(UnityPerMaterial)
                 float _WaveFrequency;
                 float _WaveScale;
                 float _WaveSpeed;
             CBUFFER_END
             
-            // Shadow pass vertex and fragment structure
             struct Attributes
             {
                 float4 positionOS   : POSITION;
@@ -230,13 +190,11 @@ Shader "Custom/WaterShader"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
             
-            // Renamed to avoid conflict with built-in function
             float3 CustomApplyShadowBias(float3 positionWS, float3 normalWS, float3 lightDirectionWS)
             {
                 float invNdotL = 1.0 - saturate(dot(normalWS, lightDirectionWS));
                 float scale = invNdotL * 0.01;
                 
-                // Apply normal offset bias
                 positionWS = lightDirectionWS * 0.001 + positionWS;
                 positionWS -= normalWS * scale;
                 return positionWS;
@@ -258,7 +216,7 @@ Shader "Custom/WaterShader"
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
                 
-                // Apply shadow bias (using our custom function)
+                // Apply shadow bias
                 float3 lightDirectionWS = _MainLightPosition.xyz;
                 positionWS = CustomApplyShadowBias(positionWS, normalWS, lightDirectionWS);
                 
@@ -294,6 +252,8 @@ Shader "Custom/WaterShader"
             HLSLPROGRAM
             #pragma vertex DepthOnlyVertex
             #pragma fragment DepthOnlyFragment
+            
+            #pragma target 2.0
             
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             
