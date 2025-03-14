@@ -5,16 +5,9 @@
 [Bb]uild/
 [Bb]uilds/
 [Ll]ogs/
-UserSettings/
-
-# Ignore the package cache
-[Pp]ackages/
-!Packages/manifest.json
-!Packages/packages-lock.json
 
 # Ignore auto-generated Unity files
-/[Aa]ssets/**/*.meta
-/[Pp]rojectSettings/EditorBuildSettings.asset
+/[Pp]rojectSettings/
 
 # Ignore crash reports, system files, and backups
 *.pidb
@@ -51,13 +44,9 @@ Assets/Scenes/Tests/**
 .idea/
 
 # Ignore Unity Cloud Build files
-[Uu]ser[Ss]ettings/
-
-# Ignore .env files or other local environment settings
-.env
-
-# Ignore files related to generated shaders
-ShaderCache/
-
-# Ignore logs from Unity Collaborate
 CollabSnapshot/
+
+# Allow essential Unity files
+!Packages/*
+!ProjectSettings/
+!Assets/**/*.meta
