@@ -1,5 +1,15 @@
+# Ignore Unity metadata
+*.wlt linguist-detectable=false
+*.meta linguist-detectable=false
+
+# Ignore shaders and other non-C# languages
 *.shader linguist-detectable=false
 *.hlsl linguist-detectable=false
+*.mathematica linguist-detectable=false
 *.nb linguist-detectable=false
 *.wl linguist-detectable=false
 *.m linguist-detectable=false
+
+# Optional: ignore YAML files if they're just Unity configs
+*.yaml linguist-detectable=false
+*.yml linguist-detectable=false
