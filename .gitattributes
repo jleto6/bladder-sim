@@ -1,5 +1,5 @@
-*.shader linguist-detectable
-*.mat linguist-generated
-*.meta linguist-generated
-Assets/Shaders/* linguist-generated
-Assets/Materials/* linguist-generated
+*.shader linguist-detectable=false
+*.hlsl linguist-detectable=false
+*.nb linguist-detectable=false
+*.wl linguist-detectable=false
+*.m linguist-detectable=false
